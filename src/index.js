@@ -5,6 +5,7 @@
 
 export { default } from './Xactus.js';
 export { default as Xactus } from './Xactus.js';
+export { default as init } from './Xactus.js';
 
 // Utility exports for advanced use cases
 export {

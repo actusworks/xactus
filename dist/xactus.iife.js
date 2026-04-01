@@ -622,6 +622,7 @@ var Xactus = (function(exports) {
 	exports.diffState = diffState;
 	exports.evaluateCondition = evaluateCondition;
 	exports.getByPath = getByPath;
+	exports.init = Xactus;
 	exports.parseTokens = parseTokens;
 	exports.setByPath = setByPath;
 	exports.updateEmptyPlaceholders = updateEmptyPlaceholders;

@@ -612,4 +612,4 @@ function Xactus(args) {
 	return api;
 }
 //#endregion
-export { Xactus, Xactus as default, diffState, evaluateCondition, getByPath, parseTokens, setByPath, updateEmptyPlaceholders, updateShowBindings };
+export { Xactus, Xactus as default, Xactus as init, diffState, evaluateCondition, getByPath, parseTokens, setByPath, updateEmptyPlaceholders, updateShowBindings };
