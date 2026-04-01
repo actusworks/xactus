@@ -1,0 +1,347 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Xactus — Event Bus Integration</title>
+	<link rel="stylesheet" href="styles.css">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body data-screen="home">
+
+
+	<div id="app-flex">
+
+		<nav>
+			<a href="example-01.html">Example 1</a>
+			<a href="example-02.html">Example 2</a>
+			<a href="example-03.html">Example 3</a>
+			<a href="example-04.html">Example 4</a>
+			<a href="example-05.html">Example 5</a>
+			<a href="example-06.html">Example 6</a>
+		</nav>
+
+		<!-- Main Content -->
+		<div id="app">
+			<div class="color-panel example-06-panel">
+				<div class="app-shell">
+
+					<!-- Xactus #1 mounts here: App Header with live badge -->
+					<div class="header-panel"></div>
+
+					<!-- Xactus #2 mounts here: Notification Center -->
+					<div class="notif-mount"></div>
+
+					<!-- Static emitter panel — simulates bus.emit() from other app modules -->
+					<div class="emitter-bar">
+						<div class="emitter-row">
+							<span class="emitter-title">📡 bus.emit() — broadcast from anywhere</span>
+							<div class="bus-dot"></div>
+							<span class="bus-label">live</span>
+						</div>
+						<div class="emitter-grid">
+							<button onclick="emitBuild()" class="emit-btn emit-success">
+								<span class="emit-source">CI/CD</span>
+								<span class="emit-label">🔨 Build</span>
+							</button>
+							<button onclick="emitDeploy()" class="emit-btn emit-info">
+								<span class="emit-source">Deploy</span>
+								<span class="emit-label">🚀 Deploy</span>
+							</button>
+							<button onclick="emitMemory()" class="emit-btn emit-warning">
+								<span class="emit-source">Monitor</span>
+								<span class="emit-label">⚠️ Memory</span>
+							</button>
+							<button onclick="emitAuthError()" class="emit-btn emit-error">
+								<span class="emit-source">Auth</span>
+								<span class="emit-label">🔴 Failed</span>
+							</button>
+							<button onclick="emitSecurity()" class="emit-btn emit-security">
+								<span class="emit-source">Security</span>
+								<span class="emit-label">🔒 Alert</span>
+							</button>
+							<button onclick="clearAll()" class="emit-btn emit-clear">
+								<span class="emit-source">User</span>
+								<span class="emit-label">🗑 Clear</span>
+							</button>
+						</div>
+					</div>
+
+				</div>
+			</div>
+
+			<div class="example-description">
+				<p>Both components share a <b>bus</b> — click any module button to see them update <b>simultaneously</b>.</p>
+				<p class="small-text">
+					The header badge (Xactus #1) and the notification center (Xactus #2) are completely independent instances.
+					A single <b>bus.emit()</b> call from anywhere in your app updates them both at once.
+				</p>
+			</div>
+
+			<div class="library-info">
+				<h3>Xactus UI library</h3>
+				<p>A lightweight, reactive UI library for building interactive web interfaces with ease.</p>
+			</div>
+		</div>
+
+
+		<!-- Code Panel -->
+		<div id="code">
+			<div class="code-handler">CODE</div>
+			<div class="example-code">
+<!-- ───────────────────────────────────────────────── -->
+<script type="text/plain" class="language-javascript">
+import X from 'xenonjs/all';
+import Xactus from 'xactus';
+
+const bus = X.bus; // mitt, nanoevents, or any .on/.off/.emit bus
+
+// ── Component 1: App Header ──────────────────────────
+//    Listens to unread:update → shows/hides badge counter
+Xactus({
+  el: document.querySelector('.header-panel'),
+  bus,
+  state: { unreadCount: 0 },
+  events: {
+    'unread:update': { setState: 'unreadCount' },
+  },
+  html: html`
+    <div class="app-header">
+      <div class="header-logo">⬡ MyApp</div>
+      <div class="header-nav">...</div>
+      <div class="header-bell">
+        🔔
+        <span x-if="unreadCount > 0" class="header-badge">{{ unreadCount }}</span>
+      </div>
+    </div>
+  `,
+});
+
+// ── Component 2: Notification Center ────────────────
+//    Listens to notification:add and unread:update
+let notifId = 0;
+
+const notifCenter = Xactus({
+  el: document.querySelector('.notif-mount'),
+  bus,
+  state: {
+    notifications: [],
+    unreadCount: 0,
+  },
+  events: {
+    'notification:add': { add: 'notifications' },
+    'unread:update'   : { setState: 'unreadCount' },
+  },
+  html: html`
+    <div class="notif-panel">
+      <div class="notif-header">
+        <div class="notif-title">
+          <span>🔔</span>
+          <h3>Notifications</h3>
+          <span x-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
+        </div>
+      </div>
+      <ul x-map="notifications" class="notif-list">
+        <li data-type="{{ row.type }}" class="notif-item">
+          <span class="notif-icon-wrap">{{ row.icon }}</span>
+          <div class="notif-body">
+            <span class="notif-msg">{{ row.message }}</span>
+            <span class="notif-from">{{ row.source }}</span>
+          </div>
+          <button x-action="dismiss" data-idx="{{ idx }}" class="notif-close">✕</button>
+        </li>
+      </ul>
+      <div x-empty="notifications" class="notif-empty">
+        <span>✅</span>
+        <p>All clear — no notifications.</p>
+      </div>
+    </div>
+  `,
+  actions: {
+    dismiss(data, e, api) {
+      api.deleteItem('notifications', parseInt(data.idx));
+      bus.emit('unread:update', Math.max(0, api.state.unreadCount - 1));
+    },
+  },
+});
+
+// ── Emit from anywhere in your app ──────────────────
+//    Both components respond to the same bus events
+bus.emit('notification:add', {
+  id: ++notifId, type: 'success', icon: '✅',
+  message: 'Build #142 completed in 1.2s',
+  source: 'CI/CD Pipeline',
+});
+bus.emit('unread:update', 1);
+</script>
+			</div>
+		</div>
+
+	</div>
+
+
+	<script src="https://unpkg.com/xactus/dist/xactus.iife.js"></script>
+
+	<script>
+
+		// ── Minimal inline event bus ─────────────────────────
+		const bus = (() => {
+			const h = {};
+			return {
+				on(e, fn)     { (h[e] = h[e] || []).push(fn); return () => this.off(e, fn); },
+				off(e, fn)    { h[e] = (h[e] || []).filter(x => x !== fn); },
+				emit(e, data) { (h[e] || []).forEach(fn => fn(data)); },
+			};
+		})();
+
+		let notifId = 0;
+
+		// ── Component 1: App Header (Xactus #1) ─────────────
+		Xactus.init({
+			el: document.querySelector('.header-panel'),
+			bus,
+			state: { unreadCount: 0 },
+			events: {
+				'unread:update': { setState: 'unreadCount' },
+			},
+			html: `
+				<div class="app-header">
+					<div class="header-logo">
+						<div class="header-logo-hex"></div>
+						MyApp
+					</div>
+					<div class="header-nav">
+						<span class="header-nav-item active">Dashboard</span>
+						<span class="header-nav-item">Projects</span>
+						<span class="header-nav-item">Docs</span>
+					</div>
+					<div class="header-actions">
+						<div class="header-bell">
+							🔔
+							<span x-if="unreadCount > 0" class="header-badge">{{ unreadCount }}</span>
+						</div>
+						<div class="header-avatar">JD</div>
+					</div>
+				</div>
+			`,
+		});
+
+		// ── Component 2: Notification Center (Xactus #2) ────
+		const notifCenter = Xactus.init({
+			el: document.querySelector('.notif-mount'),
+			bus,
+			state: {
+				notifications: [],
+				unreadCount: 0,
+			},
+			events: {
+				'notification:add': { add: 'notifications' },
+				'unread:update'   : { setState: 'unreadCount' },
+			},
+			html: `
+				<div class="notif-panel">
+					<div class="notif-header">
+						<div class="notif-title">
+							<span>🔔</span>
+							<h3>Notifications</h3>
+							<span x-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
+						</div>
+						<span class="notif-count-summary">Unread: {{ unreadCount }}</span>
+					</div>
+					<ul x-map="notifications" class="notif-list">
+						<li data-type="{{ row.type }}" class="notif-item">
+							<span class="notif-icon-wrap">{{ row.icon }}</span>
+							<div class="notif-body">
+								<span class="notif-msg">{{ row.message }}</span>
+								<span class="notif-from">{{ row.source }}</span>
+							</div>
+							<button x-action="dismiss" data-idx="{{ idx }}" class="notif-close">✕</button>
+						</li>
+					</ul>
+					<div x-empty="notifications" class="notif-empty">
+						<span>✅</span>
+						<p>All clear — no notifications.</p>
+					</div>
+				</div>
+			`,
+			actions: {
+				dismiss(data, e, api) {
+					api.deleteItem('notifications', parseInt(data.idx));
+					bus.emit('unread:update', Math.max(0, api.state.unreadCount - 1));
+				},
+			},
+		});
+
+		// ── Emitter functions called by the static buttons ───
+		function emit(type, icon, message, source) {
+			bus.emit('notification:add', { id: ++notifId, type, icon, message, source });
+			bus.emit('unread:update', notifCenter.state.unreadCount + 1);
+		}
+
+		function emitBuild()     { emit('success',  '✅', 'Build #' + (140 + notifId) + ' completed in 1.2s',     'CI/CD Pipeline');   }
+		function emitDeploy()    { emit('info',     '🚀', 'Deploying v2.4.' + notifId + ' to production',          'Deploy Service');   }
+		function emitMemory()    { emit('warning',  '⚠️', 'Memory usage at 87% capacity',                          'System Monitor');   }
+		function emitAuthError() { emit('error',    '🔴', 'Login failed: invalid credentials',                     'Auth Service');     }
+		function emitSecurity()  { emit('error',    '🔒', 'Suspicious login attempt from 192.168.1.' + notifId,    'Security Monitor'); }
+
+		function clearAll() {
+			const len = notifCenter.state.notifications.length;
+			for (let i = len - 1; i >= 0; i--) {
+				notifCenter.deleteItem('notifications', i);
+			}
+			bus.emit('unread:update', 0);
+		}
+
+	</script>
+
+
+	<!-- Prism.js scripts -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+	<script>
+
+		// Toggle Code Panel Logic
+		const codePanel = document.getElementById('code');
+		const codeHandler = document.querySelector('.code-handler');
+
+		codeHandler.addEventListener('click', () => {
+			codePanel.classList.toggle('visible');
+		});
+
+		// Automate: Convert <script type="text/plain"> into highlighted <code> blocks
+		document.querySelectorAll('script[type="text/plain"]').forEach((script) => {
+			const pre = document.createElement('pre');
+			const code = document.createElement('code');
+			code.className = script.className;
+			code.textContent = script.textContent.trim();
+			pre.appendChild(code);
+			script.parentNode.replaceChild(pre, script);
+		});
+
+
+		// Teach Prism to highlight HTML inside html`...`
+		Prism.languages.insertBefore('javascript', 'template-string', {
+			'html-template': {
+				pattern: /html`(?:\\[\s\S]|\$\{[^}]*\}|[^\\`])*`/,
+				greedy: true,
+				inside: {
+					'tag-name': { pattern: /^html/, alias: 'html-tag-marker' },
+					'template-content': {
+						pattern: /`[\s\S]*`$/,
+						alias: 'language-html',
+						inside: Prism.languages.markup,
+					},
+				},
+			},
+		});
+
+		// Help Prism highlight the new elements
+		if (window.Prism) Prism.highlightAll();
+
+	</script>
+
+
+</body>
+</html>

@@ -55,6 +55,11 @@ var Xactus = (function(exports) {
 		if (typeof obj === "object" && obj !== null) value = getByPath(path, obj);
 		else value = obj;
 		root.querySelectorAll(`[x-id="${path}"]`).forEach((el) => {
+			if (el.hasAttribute("x-model")) {
+				if (el.type === "checkbox") el.checked = !!value;
+				else el.value = value ?? "";
+				return;
+			}
 			if (mode === "html") el.innerHTML = sanitize(value ?? "");
 			else if (mode === "text") el.textContent = sanitize(value ?? "");
 			else if (mode === "add") el.insertAdjacentHTML("beforeend", value ?? "");
@@ -308,6 +313,24 @@ var Xactus = (function(exports) {
 					const { value, xid } = evaluate(expr.trim(), scope, path, inRow, rowContext);
 					return `<x-o x-id="${xid}">${escapeHtml(value)}</x-o>`;
 				});
+			} else for (const child of [...el.childNodes]) {
+				if (child.nodeType !== Node.TEXT_NODE) continue;
+				const raw = child.textContent;
+				const matches = [...raw.matchAll(/{{\s*([^}]+)\s*}}/g)];
+				if (!matches.length) continue;
+				const frag = document.createDocumentFragment();
+				let lastIndex = 0;
+				for (const match of matches) {
+					if (match.index > lastIndex) frag.appendChild(document.createTextNode(raw.slice(lastIndex, match.index)));
+					const { value, xid } = evaluate(match[1].trim(), scope, path, inRow, rowContext);
+					const xo = document.createElement("x-o");
+					xo.setAttribute("x-id", xid);
+					xo.textContent = value ?? "";
+					frag.appendChild(xo);
+					lastIndex = match.index + match[0].length;
+				}
+				if (lastIndex < raw.length) frag.appendChild(document.createTextNode(raw.slice(lastIndex)));
+				el.replaceChild(frag, child);
 			}
 			for (const attr of [...el.attributes ?? []]) {
 				const match = attr.value.match(/^{{\s*([^}]+)\s*}}$/);
@@ -340,7 +363,7 @@ var Xactus = (function(exports) {
 				if (el.type === "checkbox") el.checked = !!value;
 				else if (el.tagName === "SELECT") el.value = value ?? "";
 				else el.value = value ?? "";
-				el.setAttribute("x-id", xid);
+				el.setAttribute("x-id", xid.replace(/\./g, ":"));
 			}
 		}
 	}
@@ -413,13 +436,12 @@ var Xactus = (function(exports) {
 	}
 	//#endregion
 	//#region src/Xactus.js
+	var _instanceCount = 0;
 	function Xactus(args) {
 		const { el, bus, state, events, html, computed } = args;
 		let currentState = structuredClone(state);
-		const existingRoot = el.querySelector("[data-xactus-root]");
-		if (existingRoot?._xactusDestroy) existingRoot._xactusDestroy();
 		const root = document.createElement("div");
-		root.setAttribute("data-xactus-root", "");
+		root.setAttribute("data-xactus", args.id ?? `xactus-${++_instanceCount}`);
 		el.appendChild(root);
 		const templateCache = {};
 		const ifTemplates = {};
@@ -479,6 +501,7 @@ var Xactus = (function(exports) {
 			},
 			setByPath(path, value) {
 				setByPath(currentState, path, value);
+				updateDOM(path, fullState(), "text", root);
 			},
 			RENDER(HTML, state = fullState(), target = root) {
 				let html = renderTemplate(HTML, state);
@@ -571,7 +594,6 @@ var Xactus = (function(exports) {
 			unsubs.length = 0;
 			root.remove();
 		};
-		root._xactusDestroy = () => api.destroy();
 		api.RENDER(html, fullState());
 		if (args.hooks?.onMount) args.hooks.onMount(api);
 		function modelChanged(path, value) {
@@ -617,7 +639,13 @@ var Xactus = (function(exports) {
 		return api;
 	}
 	//#endregion
+	//#region src/index.js
+	var debug1 = () => {
+		console.log("Debug function 1");
+	};
+	//#endregion
 	exports.Xactus = Xactus;
+	exports.debug1 = debug1;
 	exports.default = Xactus;
 	exports.diffState = diffState;
 	exports.evaluateCondition = evaluateCondition;

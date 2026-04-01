@@ -81,6 +81,34 @@ function bindAll(root, scope, path, inRow, rowContext = null) {
 					return `<x-o x-id="${xid}">${escapeHtml(value)}</x-o>`;
 				});
 			}
+		} else {
+			// Mixed content: walk child text nodes for {{ }} bindings
+			// (handles cases like: <li><strong>{{ a }}</strong> — {{ b }}</li>)
+			for (const child of [...el.childNodes]) {
+				if (child.nodeType !== Node.TEXT_NODE) continue;
+				const raw = child.textContent;
+				const matches = [...raw.matchAll(/{{\s*([^}]+)\s*}}/g)];
+				if (!matches.length) continue;
+
+				const frag = document.createDocumentFragment();
+				let lastIndex = 0;
+				for (const match of matches) {
+					if (match.index > lastIndex) {
+						frag.appendChild(document.createTextNode(raw.slice(lastIndex, match.index)));
+					}
+					const expr = match[1].trim();
+					const { value, xid } = evaluate(expr, scope, path, inRow, rowContext);
+					const xo = document.createElement('x-o');
+					xo.setAttribute('x-id', xid);
+					xo.textContent = value ?? '';
+					frag.appendChild(xo);
+					lastIndex = match.index + match[0].length;
+				}
+				if (lastIndex < raw.length) {
+					frag.appendChild(document.createTextNode(raw.slice(lastIndex)));
+				}
+				el.replaceChild(frag, child);
+			}
 		}
 
 		// Attribute bindings: attr="{{ expr }}"
@@ -132,7 +160,7 @@ function bindAll(root, scope, path, inRow, rowContext = null) {
 			} else {
 				el.value = value ?? '';
 			}
-			el.setAttribute('x-id', xid);
+			el.setAttribute('x-id', xid.replace(/\./g, ':'));
 		}
 	}
 }

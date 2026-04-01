@@ -132,6 +132,16 @@ export function updateDOM(path, obj=currentState, mode='html', root=document) {
 		value = obj;
 	}
 	root.querySelectorAll(`[x-id="${path}"]`).forEach(el => {
+		// x-model elements (inputs, selects) must be updated via .value/.checked,
+		// never via innerHTML/textContent which would destroy their child elements
+		if (el.hasAttribute('x-model')) {
+			if (el.type === 'checkbox') {
+				el.checked = !!value;
+			} else {
+				el.value = value ?? '';
+			}
+			return;
+		}
 		if (mode === 'html') {
             el.innerHTML = sanitize(value ?? '');
 		} else if (mode === 'text') {

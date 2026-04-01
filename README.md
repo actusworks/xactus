@@ -32,6 +32,20 @@ No build step required. No virtual DOM. No framework lock-in.
 - [Lifecycle Hooks](#lifecycle-hooks)
 - [API Reference](#api-reference)
 - [Full Example](#full-example)
+- [Live Examples](#live-examples)
+
+---
+
+## Live Examples
+
+| # | Demo | What it covers |
+|---|------|----------------|
+| 1 | [Basic Binding](https://actusworks.github.io/xactus/examples/example-01.html) | State management, template interpolation, `x-model` |
+| 2 | [List Rendering](https://actusworks.github.io/xactus/examples/example-02.html) | `x-map`, conditional rendering with `x-if` |
+| 3 | [Two-Way Binding](https://actusworks.github.io/xactus/examples/example-03.html) | `x-model` on text, select, number, and checkbox inputs |
+| 4 | [List Actions](https://actusworks.github.io/xactus/examples/example-04.html) | Add, remove, inline edit with `x-if` contextual form |
+| 5 | [Conditionals & Visibility](https://actusworks.github.io/xactus/examples/example-05.html) | `x-if` / `x-else-if` / `x-else` vs `x-show` |
+| 6 | [Event Bus Integration](https://actusworks.github.io/xactus/examples/example-06.html) | Multiple independent instances sharing a `bus` |
 
 ---
 
@@ -214,7 +228,7 @@ Xactus({
   html: `
     <ul x-map="products">
       <li>
-        <strong>{{ row.name }}</strong> — ${{ row.price }}
+        <strong>{{ row.name }}</strong> — {{ row.price }}
         <span x-if="!row.inStock">Out of stock</span>
       </li>
     </ul>
@@ -427,20 +441,29 @@ Xactus({
   state: {
     items: [{ id: 1, name: 'First item' }],
     newItem: { name: '' },
+    editing: null,
   },
   html: `
     <ul x-map="items">
       <li>
         {{ row.name }}
         <button x-action="remove" data-idx="{{ idx }}">✕</button>
-        <button x-action="edit"   data-idx="{{ idx }}" data-name="{{ row.name }}">Edit</button>
+        <button x-action="edit"   data-idx="{{ idx }}">Edit</button>
       </li>
     </ul>
 
-    <form x-on="submit:add">
+    <form x-if="!editing" x-on="submit:add">
       <input x-model="newItem.name" type="text" placeholder="New item…">
       <button type="submit">Add</button>
     </form>
+
+    <div x-if="editing">
+      <form x-on="submit:save">
+        <input x-model="editing.name" type="text" value="{{ editing.name }}">
+        <button type="submit">Save</button>
+        <button type="button" x-action="cancelEdit">Cancel</button>
+      </form>
+    </div>
   `,
   actions: {
     remove(data, e, api) {
@@ -448,7 +471,8 @@ Xactus({
     },
 
     edit(data, e, api) {
-      api.setState('editing', { idx: parseInt(data.idx), name: data.name });
+      const idx = parseInt(data.idx);
+      api.setState('editing', { idx, name: api.state.items[idx].name });
     },
 
     add(data, e, api) {
@@ -457,6 +481,19 @@ Xactus({
       if (!name) return;
       api.addItem({ items: { id: Date.now(), name } });
       api.setByPath('newItem:name', '');
+    },
+
+    save(data, e, api) {
+      e.preventDefault();
+      const { idx, name } = api.state.editing;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      api.updateItem('items', { idx, name: trimmed });
+      api.setState('editing', null);
+    },
+
+    cancelEdit(data, e, api) {
+      api.setState('editing', null);
     },
   },
 });
@@ -499,7 +536,7 @@ Xactus({
     },
   },
   html: `
-    <p x-if="hasItems">{{ itemCount }} items — Total: ${{ total }}</p>
+    <p x-if="hasItems">{{ itemCount }} items — Total: {{ total }}</p>
     <p x-if="isEmpty">Your cart is empty.</p>
   `,
 });

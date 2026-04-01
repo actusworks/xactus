@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Xactus</title>
+  	<link rel="stylesheet" href="styles.css">
+	<!-- Prism.js for syntax highlighting -->
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body data-screen="home">
+
+
+
+	<div id="app-flex">
+		
+		<nav>
+			<a href="example-01.html">Example 1</a>
+			<a href="example-02.html">Example 2</a>
+			<a href="example-03.html">Example 3</a>
+			<a href="example-04.html">Example 4</a>
+			<a href="example-05.html">Example 5</a>
+			<a href="example-06.html">Example 6</a>
+		</nav>
+		
+		<!-- Main Content -->
+		<div id="app">
+			<div class="color-panel"></div>
+
+			<div class="example-description">
+				<p>Render a list of products from an array in state.</p>
+				<p class="small-text">This example demonstrates <b>list rendering</b> with <b>x-map</b>,<br>and <b>conditional rendering</b> with <b>x-if</b>.
+				</p>
+			</div>
+
+
+			<div class="library-info">
+				<h3>Xactus UI library</h3>
+				<p>A lightweight, reactive UI library for building interactive web interfaces with ease.</p>
+			</div>
+		</div>
+
+
+		<!-- Code Panel -->
+		<div id="code">
+			<div class="code-handler">CODE</div>
+			<div class="example-code">
+<!-- ───────────────────────────────────────────────── -->
+<h3>Lists</h3>
+<script type="text/plain" class="language-javascript">
+import Xactus from 'xactus';
+
+Xactus({
+	el: document.querySelector('#app'),
+	state: {
+		products: [
+		{ id: 1, name: 'Item A', price: 9.99,  inStock: true  },
+		{ id: 2, name: 'Item B', price: 14.99, inStock: false },
+		],
+	},
+	html: html`
+		<ul x-map="products">
+			<li>
+				<strong>{{ row.name }}</strong> — {{ row.price }}
+				<span x-if="!row.inStock">Out of stock</span>
+			</li>
+		</ul>
+	`,
+});
+</script>
+
+<h3>Nested Lists</h3>
+<script type="text/plain" class="language-javascript">
+Xactus({
+	id: 'nested-lists',
+	el: document.querySelector('.color-panel'),
+	state: {
+		categories: [
+			{ id: 1, name: 'Category A' },
+			{ id: 2, name: 'Category B', children: [
+				{ id: 3, name: 'Subcategory B1' },
+				{ id: 4, name: 'Subcategory B2' },
+				]
+			},
+		],
+	},
+	html: html`
+		<h1>Nested Lists</h1>
+		<div x-map="categories">
+			<div>
+				<h3>{{ row.name }}</h3>
+				<ul x-map="row.children">
+					<li>{{ row.name }}</li>
+				</ul>
+			</div>
+		</div>
+	`,
+});
+</script>
+
+			</div>
+		</div>
+
+
+	</div>
+
+
+	<script src="https://unpkg.com/xactus/dist/xactus.iife.js"></script>
+
+	<script>
+
+		Xactus.init({
+			el: document.querySelector('.color-panel'),
+			state: {
+				products: [
+				{ id: 1, name: 'Item A', price: 9.99,  inStock: true  },
+				{ id: 2, name: 'Item B', price: 14.99, inStock: false },
+				],
+			},
+			html: `
+				<h1>Lists</h1>
+				<ul x-map="products">
+					<li class="demo-card">
+						<strong>{{ row.name }}</strong> — {{ row.price }}
+						<span class="badge" x-if="!row.inStock">Out of stock</span>
+					</li>
+				</ul>
+			`,
+		});
+
+
+		Xactus.init({
+			id: 'nested-lists',
+			el: document.querySelector('.color-panel'),
+			state: {
+				categories: [
+					{ id: 1, name: 'Category A' },
+					{ id: 2, name: 'Category B', children: [
+						{ id: 3, name: 'Subcategory B1' },
+						{ id: 4, name: 'Subcategory B2' },
+						]
+					},
+				],
+			},
+			html: `
+				<h1>Nested Lists</h1>
+				<div x-map="categories">
+					<div>
+						<h3>{{ row.name }}</h3>
+						<ul x-map="row.children">
+							<li>{{ row.name }}</li>
+						</ul>
+					</div>
+				</div>
+			`,
+		});
+
+	</script>
+	
+	
+
+	
+
+		
+	<!-- Prism.js scripts -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+	<script>
+	
+		// Toggle Code Panel Logic
+		const codePanel = document.getElementById('code');
+		const codeHandler = document.querySelector('.code-handler');
+		
+		codeHandler.addEventListener('click', () => {
+			codePanel.classList.toggle('visible');
+		});
+
+		// Automate: Convert <script type="text/plain"> into highlighted <code> blocks
+		document.querySelectorAll('script[type="text/plain"]').forEach((script) => {
+			const pre = document.createElement('pre');
+			const code = document.createElement('code');
+			code.className = script.className;
+			code.textContent = script.textContent.trim();
+			pre.appendChild(code);
+			script.parentNode.replaceChild(pre, script);
+		});
+
+
+
+
+		// Teach Prism to highlight HTML inside html`...`
+		Prism.languages.insertBefore('javascript', 'template-string', {
+			'html-template': {
+				pattern: /html`(?:\\[\s\S]|\$\{[^}]*\}|[^\\`])*`/,
+				greedy: true,
+				inside: {
+					'tag-name': { pattern: /^html/, alias: 'html-tag-marker' },
+					'template-content': {
+						pattern: /`[\s\S]*`$/,
+						alias: 'language-html',
+						inside: Prism.languages.markup,
+					},
+				},
+			},
+		});
+
+		// Help Prism highlight the new elements
+		if (window.Prism) Prism.highlightAll();
+
+	</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Xactus</title>
+  	<link rel="stylesheet" href="styles.css">
+	<!-- Prism.js for syntax highlighting -->
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body data-screen="home">
+
+
+
+	<div id="app-flex">
+		
+		<nav>
+			<a href="example-01.html">Example 1</a>
+			<a href="example-02.html">Example 2</a>
+			<a href="example-03.html">Example 3</a>
+			<a href="example-04.html">Example 4</a>
+			<a href="example-05.html">Example 5</a>
+			<a href="example-06.html">Example 6</a>
+		</nav>
+		
+		<!-- Main Content -->
+		<div id="app">
+			<div class="color-panel"></div>
+
+			<div class="example-description">
+				<p>Interact with the inputs to see the state update in real-time.</p>
+				<p class="small-text">This example demonstrates <b>two-way data binding</b> with <b>x-model</b> on a text input, select, number input, and checkbox.
+				</p>
+			</div>
+
+
+			<div class="library-info">
+				<h3>Xactus UI library</h3>
+				<p>A lightweight, reactive UI library for building interactive web interfaces with ease.</p>
+			</div>
+		</div>
+
+
+		<!-- Code Panel -->
+		<div id="code">
+			<div class="code-handler">CODE</div>
+			<div class="example-code">
+<!-- ───────────────────────────────────────────────── -->
+<script type="text/plain" class="language-javascript">
+import Xactus from 'xactus';
+
+Xactus({
+	el: document.querySelector('.color-panel'),
+	state: {
+		search: '',
+		qty: 1,
+		agreed: false,
+		color: 'red',
+	},
+	html: html`
+	<h1>Two-Way Binding</h1>
+	<div class="example-03">
+
+		<input x-model="search" type="text" placeholder="Search…">
+
+		<select x-model="color">
+			<option value="red">Red</option>
+			<option value="blue">Blue</option>
+		</select>
+
+		<label for="qty">
+			<input x-model="qty" type="number" id="qty" min="1">
+			Quantity
+		</label>
+		<label for="agree">
+			<input x-model="agreed" type="checkbox" id="agree">
+			I agree to the terms
+		</label>
+
+		<div class="demo-card">
+			<p>Search: <b>{{ search }}</b></p>
+			<p>Color: <b>{{ color }}</b></p>
+			<p>Qty: <b>{{ qty }}</b></p>
+			<p>Agreed: <b>{{ agreed }}</b></p>
+		</div>
+
+	</div>
+	`,
+});
+</script>
+
+			</div>
+		</div>
+
+
+	</div>
+
+
+	<script src="https://unpkg.com/xactus/dist/xactus.iife.js"></script>
+
+	<script>
+
+		Xactus.init({
+			el: document.querySelector('.color-panel'),
+			state: {
+				search: '',
+				qty: 1,
+				agreed: false,
+				color: 'red',
+			},
+			html: `
+			<h1>Two-Way Binding</h1>
+			<div class="example-03">
+
+				<input x-model="search" type="text"     placeholder="Search…">
+
+				<select x-model="color">
+					<option value="red">Red</option>
+					<option value="blue">Blue</option>
+				</select>
+
+				<label for="qty">
+					<input x-model="qty" type="number" id="qty" min="1">
+					Quantity
+				</label>
+				<label for="agree">
+					<input x-model="agreed" type="checkbox" id="agree">
+					I agree to the terms
+				</label>
+
+				<div class="demo-card">
+					<p>Search: <b>{{ search }}</b></p>
+					<p>Color: <b>{{ color }}</b></p>
+					<p>Qty: <b>{{ qty }}</b></p>
+					<p>Agreed: <b>{{ agreed }}</b></p>
+				</div>
+
+			</div>
+			`,
+		});
+
+	</script>
+
+	
+	
+
+
+	<!-- Prism.js scripts -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+	<script>
+	
+		// Toggle Code Panel Logic
+		const codePanel = document.getElementById('code');
+		const codeHandler = document.querySelector('.code-handler');
+		
+		codeHandler.addEventListener('click', () => {
+			codePanel.classList.toggle('visible');
+		});
+
+		// Automate: Convert <script type="text/plain"> into highlighted <code> blocks
+		document.querySelectorAll('script[type="text/plain"]').forEach((script) => {
+			const pre = document.createElement('pre');
+			const code = document.createElement('code');
+			code.className = script.className;
+			code.textContent = script.textContent.trim();
+			pre.appendChild(code);
+			script.parentNode.replaceChild(pre, script);
+		});
+
+
+		
+		// Teach Prism to highlight HTML inside html`...`
+		Prism.languages.insertBefore('javascript', 'template-string', {
+			'html-template': {
+				pattern: /html`(?:\\[\s\S]|\$\{[^}]*\}|[^\\`])*`/,
+				greedy: true,
+				inside: {
+					'tag-name': { pattern: /^html/, alias: 'html-tag-marker' },
+					'template-content': {
+						pattern: /`[\s\S]*`$/,
+						alias: 'language-html',
+						inside: Prism.languages.markup,
+					},
+				},
+			},
+		});
+
+		// Help Prism highlight the new elements
+		if (window.Prism) Prism.highlightAll();
+
+	</script>
+
+
+</body>
+</html>

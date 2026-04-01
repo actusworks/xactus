@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Xactus</title>
+  	<link rel="stylesheet" href="styles.css">
+	<!-- Prism.js for syntax highlighting -->
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body data-screen="home">
+
+
+
+	<div id="app-flex">
+		
+		<nav>
+			<a href="example-01.html">Example 1</a>
+			<a href="example-02.html">Example 2</a>
+			<a href="example-03.html">Example 3</a>
+			<a href="example-04.html">Example 4</a>
+			<a href="example-05.html">Example 5</a>
+			<a href="example-06.html">Example 6</a>
+		</nav>
+		
+		<!-- Main Content -->
+		<div id="app">
+			<div class="color-panel"></div>
+
+			<div class="example-description">
+				<p>Interact with the inputs to see the state update in real-time.</p>
+				<p class="small-text">This example demonstrates <b>list actions</b>: add, remove, and inline edit using <b>x-if</b> to show a contextual edit form when an item is being edited.
+				</p>
+			</div>
+
+
+			<div class="library-info">
+				<h3>Xactus UI library</h3>
+				<p>A lightweight, reactive UI library for building interactive web interfaces with ease.</p>
+			</div>
+		</div>
+
+
+		<!-- Code Panel -->
+		<div id="code">
+			<div class="code-handler">CODE</div>
+			<div class="example-code">
+<!-- ───────────────────────────────────────────────── -->
+<script type="text/plain" class="language-javascript">
+import Xactus from 'xactus';
+
+Xactus({
+	el: document.querySelector('#app'),
+	state: {
+		items: [{ id: 1, name: 'First item' }],
+		newItem: { name: '' },
+		editing: null,
+	},
+	html: html`
+		<ul x-map="items">
+			<li>
+				{{ row.name }}
+				<button x-action="remove" data-idx="{{ idx }}">✕</button>
+				<button x-action="edit"   data-idx="{{ idx }}" data-name="{{ row.name }}">Edit</button>
+			</li>
+		</ul>
+
+		<form x-if="!editing" x-on="submit:add">
+			<input x-model="newItem.name" type="text" placeholder="New item…">
+			<button type="submit">Add</button>
+		</form>
+
+		<div x-if="editing">
+			<form x-on="submit:save">
+				<input x-model="editing.name" type="text" value="{{ editing.name }}">
+				<button type="submit">Save</button>
+				<button type="button" x-action="cancelEdit">Cancel</button>
+			</form>
+		</div>
+	`,
+	actions: {
+		remove(data, e, api) {
+			api.deleteItem('items', parseInt(data.idx));
+		},
+
+		edit(data, e, api) {
+			const idx = parseInt(data.idx);
+			api.setState('editing', { idx, name: api.state.items[idx].name });
+		},
+
+		add(data, e, api) {
+			e.preventDefault();
+			const name = api.state.newItem.name.trim();
+			if (!name) return;
+			api.addItem({ items: { id: Date.now(), name } });
+			api.setByPath('newItem:name', '');
+		},
+
+		save(data, e, api) {
+			e.preventDefault();
+			const { idx, name } = api.state.editing;
+			const trimmed = name.trim();
+			if (!trimmed) return;
+			api.updateItem('items', { idx, name: trimmed });
+			api.setState('editing', null);
+		},
+
+		cancelEdit(data, e, api) {
+			api.setState('editing', null);
+		},
+	},
+});
+</script>
+
+			</div>
+		</div>
+
+
+	</div>
+
+
+	<script src="https://unpkg.com/xactus/dist/xactus.iife.js"></script>
+
+	<script>
+
+		Xactus.init({
+			id: 'actions-example',
+			el: document.querySelector('.color-panel'),
+			state: {
+				items: [{ id: 1, name: 'First item' }],
+				newItem: { name: '' },
+				editing: null,
+			},
+			html: `
+				<ul x-map="items">
+					<li class="list-item">
+						<span>{{ row.name }}</span>
+						<button class="btn btn-outline" x-action="remove" data-idx="{{ idx }}">✕</button>
+						<button class="btn btn-outline" x-action="edit"   data-idx="{{ idx }}" data-name="{{ row.name }}">Edit</button>
+					</li>
+				</ul>
+
+				<form x-if="!editing" x-on="submit:add">
+					<input x-model="newItem.name" type="text" placeholder="New item…">
+					<button class="btn btn-primary" type="submit">Add</button>
+				</form>
+
+				<div x-if="editing" class="edit-form">
+					<form x-on="submit:save">
+						<input x-model="editing.name" type="text" value="{{ editing.name }}">
+						<button class="btn btn-primary" type="submit">Save</button>
+						<button class="btn btn-outline" type="button" x-action="cancelEdit">Cancel</button>
+					</form>
+				</div>
+			`,
+			actions: {
+				remove(data, e, api) {
+					api.deleteItem('items', parseInt(data.idx));
+				},
+
+				edit(data, e, api) {
+					const idx = parseInt(data.idx);
+					api.setState('editing', { idx, name: api.state.items[idx].name });
+				},
+
+				add(data, e, api) {
+					e.preventDefault();
+					const name = api.state.newItem.name.trim();
+					if (!name) return;
+					api.addItem({ items: { id: Date.now(), name } });
+					api.setByPath('newItem:name', '');
+				},
+
+				save(data, e, api) {
+					e.preventDefault();
+					const { idx, name } = api.state.editing;
+					const trimmed = name.trim();
+					if (!trimmed) return;
+					api.updateItem('items', { idx, name: trimmed });
+					api.setState('editing', null);
+				},
+
+				cancelEdit(data, e, api) {
+					api.setState('editing', null);
+				},
+			},
+		});
+
+	</script>
+
+	
+	
+
+
+	<!-- Prism.js scripts -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+
+	<script>
+	
+		// Toggle Code Panel Logic
+		const codePanel = document.getElementById('code');
+		const codeHandler = document.querySelector('.code-handler');
+		
+		codeHandler.addEventListener('click', () => {
+			codePanel.classList.toggle('visible');
+		});
+
+		// Automate: Convert <script type="text/plain"> into highlighted <code> blocks
+		document.querySelectorAll('script[type="text/plain"]').forEach((script) => {
+			const pre = document.createElement('pre');
+			const code = document.createElement('code');
+			code.className = script.className;
+			code.textContent = script.textContent.trim();
+			pre.appendChild(code);
+			script.parentNode.replaceChild(pre, script);
+		});
+
+
+		
+		// Teach Prism to highlight HTML inside html`...`
+		Prism.languages.insertBefore('javascript', 'template-string', {
+			'html-template': {
+				pattern: /html`(?:\\[\s\S]|\$\{[^}]*\}|[^\\`])*`/,
+				greedy: true,
+				inside: {
+					'tag-name': { pattern: /^html/, alias: 'html-tag-marker' },
+					'template-content': {
+						pattern: /`[\s\S]*`$/,
+						alias: 'language-html',
+						inside: Prism.languages.markup,
+					},
+				},
+			},
+		});
+
+		// Help Prism highlight the new elements
+		if (window.Prism) Prism.highlightAll();
+
+	</script>
+
+
+</body>
+</html>

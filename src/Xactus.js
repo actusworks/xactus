@@ -14,17 +14,15 @@ import renderTemplate 	from './render-template.js';
 
 
 // ════════════════════════════════════════════════════
+let _instanceCount = 0;
+
 export default function Xactus( args ) {
 	const { el, bus, state, events, html, computed } = args;
 	let currentState = structuredClone(state);
 
-	// Auto-destroy any previous instance mounted on the same element
-	const existingRoot = el.querySelector('[data-xactus-root]');
-	if (existingRoot?._xactusDestroy) existingRoot._xactusDestroy();
-
 	// Scoped root wrapper — isolates DOM queries per instance
 	const root = document.createElement('div');
-	root.setAttribute('data-xactus-root', '');
+	root.setAttribute('data-xactus', args.id ?? `xactus-${++_instanceCount}`);
 	el.appendChild(root);
 	const templateCache = {};
 	const ifTemplates = {};
@@ -96,7 +94,7 @@ export default function Xactus( args ) {
 		},
 		setByPath( path, value ) {
 			UT.setByPath( currentState, path, value );
-			//UT.updateDOM(path, currentState, 'text', el);
+			UT.updateDOM(path, fullState(), 'text', root);
 		},
 
 
@@ -240,9 +238,6 @@ export default function Xactus( args ) {
 		unsubs.length = 0;
 		root.remove();
 	};
-	// Store destroy ref on the sentinel so auto-destroy can find it
-	root._xactusDestroy = () => api.destroy();
-
 
 
 	// ─────────────────────────────────────────────────
