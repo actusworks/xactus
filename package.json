@@ -1,6 +1,6 @@
 {
   "name": "xactus",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "type": "module",
   "description": "Lightweight declarative UI component library for vanilla JavaScript. Define state and an HTML template — Xactus handles rendering, two-way binding, list management, computed properties, and surgical DOM updates. No virtual DOM, no build step required.",
   "main": "./dist/xactus.iife.js",
