@@ -18,6 +18,11 @@
     "url": "https://github.com/actusworks/xactus/issues"
   },
   "homepage": "https://github.com/actusworks/xactus#readme",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "xenonjs": "^1.0.4"
   },
