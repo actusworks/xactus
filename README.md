@@ -1,5 +1,12 @@
 # Xactus
 
+[![npm version](https://img.shields.io/npm/v/xactus.svg?style=flat-square)](https://www.npmjs.com/package/xactus)
+[![npm downloads](https://img.shields.io/npm/dm/xactus.svg?style=flat-square)](https://www.npmjs.com/package/xactus)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/xactus?style=flat-square&label=minzipped)](https://bundlephobia.com/package/xactus)
+[![license](https://img.shields.io/npm/l/xactus.svg?style=flat-square)](./LICENSE)
+[![ESM only](https://img.shields.io/badge/ESM-only-brightgreen?style=flat-square)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
+[![zero dependencies](https://img.shields.io/badge/dependencies-0-brightgreen?style=flat-square)](./package.json)
+
 A lightweight, declarative UI component library for vanilla JavaScript. Define your state and HTML template once — Xactus handles rendering, two-way binding, list management, and surgical DOM updates automatically.
 
 No build step required. No virtual DOM. No framework lock-in.
