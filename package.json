@@ -1,6 +1,6 @@
 {
   "name": "xactus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Xactus is a simple reactive library for JavaScript. It allows you to create reactive objects that automatically update when their dependencies change.",
   "main": "src/index.js",
   "scripts": {
