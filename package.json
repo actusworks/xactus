@@ -1,7 +1,7 @@
 {
   "name": "xactus",
   "version": "1.0.2",
-  "description": "Xactus is a simple reactive library for JavaScript. It allows you to create reactive objects that automatically update when their dependencies change.",
+  "description": "Lightweight declarative UI component library for vanilla JavaScript. Define state and an HTML template — Xactus handles rendering, two-way binding, list management, computed properties, and surgical DOM updates. No virtual DOM, no build step required.",
   "main": "src/index.js",
   "scripts": {
     "dev": "vite",
@@ -18,15 +18,32 @@
     "url": "https://github.com/actusworks/xactus/issues"
   },
   "homepage": "https://github.com/actusworks/xactus#readme",
+  "keywords": [
+    "reactive",
+    "ui",
+    "component",
+    "declarative",
+    "template",
+    "vanilla-js",
+    "dom",
+    "two-way-binding",
+    "x-model",
+    "x-if",
+    "x-map",
+    "event-bus",
+    "no-virtual-dom",
+    "lightweight",
+    "micro-frontend",
+    "widget"
+  ],
   "files": [
     "src",
     "README.md",
     "LICENSE"
   ],
-  "dependencies": {
-    "xenonjs": "^1.0.4"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "xenonjs": "^1.0.4",
     "vite": "^8.0.3"
   }
 }
