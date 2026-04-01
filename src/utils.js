@@ -210,6 +210,13 @@ export function reindexElement(el, listKey, newIdx) {
         const tail = rest.slice(oldIdx.length); // ":name" or ""
         node.setAttribute('x-id', `${prefix}${newIdx}${tail}`);
     });
+
+    // Also update {{ idx }} bindings (e.g. data-idx="{{ idx }}") so that
+    // subsequent actions (like dismiss) use the current index, not the stale one.
+    for (const node of el.querySelectorAll('[x-id="idx"]')) {
+        if (node.hasAttribute('data-idx')) node.setAttribute('data-idx', newIdx);
+        else if (!node.children.length) node.textContent = newIdx;
+    }
 }
 
 

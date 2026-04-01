@@ -79,6 +79,8 @@ function reindexElement(el, listKey, newIdx) {
 		const tail = rest.slice(oldIdx.length);
 		node.setAttribute("x-id", `${prefix}${newIdx}${tail}`);
 	});
+	for (const node of el.querySelectorAll("[x-id=\"idx\"]")) if (node.hasAttribute("data-idx")) node.setAttribute("data-idx", newIdx);
+	else if (!node.children.length) node.textContent = newIdx;
 }
 /**
 * Finds all [[token]] patterns in a string.
@@ -542,13 +544,18 @@ function Xactus(args) {
 				let payload = patch[key];
 				currentState[key].push(payload);
 				let newIdx = currentState[key].length - 1;
-				updateDOM(key, renderTemplate(api.getCachedTemplatePart(key), {
+				let rowHtml = renderTemplate(api.getCachedTemplatePart(key), {
 					row: payload,
 					idx: newIdx
 				}, {
 					list: key,
 					idx: newIdx
-				}), "add", root);
+				});
+				const rowTpl = document.createElement("template");
+				rowTpl.innerHTML = rowHtml;
+				const rowRoot = rowTpl.content.firstElementChild;
+				if (rowRoot) rowRoot.setAttribute("x-id", `${key}:${newIdx}`);
+				updateDOM(key, rowTpl.innerHTML, "add", root);
 			});
 			updateEmptyPlaceholders(root, fullState());
 		},

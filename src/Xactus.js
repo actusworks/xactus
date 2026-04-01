@@ -162,8 +162,17 @@ export default function Xactus( args ) {
 
 				let newIdx = currentState[key].length - 1;
 				let template = api.getCachedTemplatePart( key );
-				let newItem = renderTemplate( template, {row: payload, idx: newIdx}, {list: key, idx: newIdx} );
-				UT.updateDOM(key, newItem, 'add', root);
+				let rowHtml = renderTemplate( template, {row: payload, idx: newIdx}, {list: key, idx: newIdx} );
+
+				// Set the correct row-level x-id (e.g. "notifications:0") on the root element.
+				// renderTemplate only sets attribute-binding-derived x-ids on the root, not the
+				// row-path x-id that the x-map loop normally assigns after processNode returns.
+				const rowTpl = document.createElement('template');
+				rowTpl.innerHTML = rowHtml;
+				const rowRoot = rowTpl.content.firstElementChild;
+				if (rowRoot) rowRoot.setAttribute('x-id', `${key}:${newIdx}`);
+
+				UT.updateDOM(key, rowTpl.innerHTML, 'add', root);
 			});
 			UT.updateEmptyPlaceholders(root, fullState());
 		},
