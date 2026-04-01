@@ -6,16 +6,17 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     lib: {
-      entry: {
-        index: resolve(__dirname, 'src/index.js')
+      entry: resolve(__dirname, 'src/index.js'),
+      name: 'Xactus',
+      formats: ['es', 'iife'],
+      fileName: (format) => {
+        if (format === 'es')   return 'xactus.esm.js';
+        if (format === 'iife') return 'xactus.iife.js';
       },
-      formats: ['es'],
     },
     rollupOptions: {
       output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
-        manualChunks: undefined
+        exports: 'named',
       },
     },
     target: 'es2020',

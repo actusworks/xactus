@@ -334,39 +334,169 @@ export function evaluateCondition(expr, scope) {
 
 // MARK: Update Conditionals
 // ─────────────────────────────────────────────────
-// Re-evaluates all x-if conditions in the live DOM.
-// Swaps comment ↔ element based on current state.
-// ifTemplates: map of expression → original template outerHTML
-// renderFn: function(templateStr, state) → rendered HTML string
+// Re-evaluates all x-if / x-else-if / x-else chains in the live DOM.
+// ifTemplates : { expr → outerHTML, 'x-else-if:expr' → outerHTML, 'x-else:ifExpr' → outerHTML }
+// ifChains    : { ifExpr → [ {type, expr, html}, ... ] }
+// renderFn    : (templateStr, state) → rendered HTML string
 // ─────────────────────────────────────────────────
-export function updateConditionals(root, state, ifTemplates, renderFn) {
-	// Visible x-if elements → hide if condition now false
-	for (const el of [...root.querySelectorAll('[x-if]')]) {
-		const expr = el.getAttribute('x-if').trim();
-		if (!evaluateCondition(expr, state)) {
-			const comment = document.createComment(`x-if:${expr}`);
-			el.parentNode.replaceChild(comment, el);
-		}
+export function updateConditionals(root, state, ifTemplates, renderFn, ifChains = {}) {
+	// Collect all chain-head positions (visible x-if elements OR x-if: comments)
+	// We'll process each chain exactly once.
+
+	const processedExprs = new Set();
+
+	// Helper: render a template string into a live DOM element
+	function renderEl(templateHtml) {
+		const rendered = renderFn(templateHtml, state);
+		const tpl = document.createElement('template');
+		tpl.innerHTML = rendered;
+		return tpl.content.firstElementChild;
 	}
 
-	// Comment placeholders → show if condition now true
+	// Helper: resolve a slot in the DOM.
+	// slotNode is either the current live element (x-if / x-else-if / x-else attr) or comment node.
+	// Returns the actual node we should replace/keep, and its current type.
+	function resolveSlot(node) {
+		if (node.nodeType === Node.COMMENT_NODE) return node;
+		return node;
+	}
+
+	// Walk the DOM and find all chain heads (x-if elements or x-if: comments)
+	// We use a TreeWalker for comments + querySelectorAll for visible elements.
+	const heads = [];
+
+	// Visible x-if heads
+	for (const el of root.querySelectorAll('[x-if]')) {
+		const expr = el.getAttribute('x-if').trim();
+		if (!processedExprs.has(expr)) heads.push({ node: el, expr, isComment: false });
+	}
+
+	// Comment x-if heads
 	const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-	const toReplace = [];
 	while (walker.nextNode()) {
 		const data = walker.currentNode.data;
 		if (!data.startsWith('x-if:')) continue;
 		const expr = data.slice(5);
-		if (evaluateCondition(expr, state) && ifTemplates[expr]) {
-			toReplace.push({ node: walker.currentNode, expr });
-		}
+		if (!processedExprs.has(expr)) heads.push({ node: walker.currentNode, expr, isComment: true });
 	}
 
-	for (const { node, expr } of toReplace) {
-		const rendered = renderFn(ifTemplates[expr], state);
-		const tpl = document.createElement('template');
-		tpl.innerHTML = rendered;
-		const newEl = tpl.content.firstElementChild;
-		node.parentNode.replaceChild(newEl, node);
+	for (const { node: headNode, expr: ifExpr } of heads) {
+		if (processedExprs.has(ifExpr)) continue;
+		processedExprs.add(ifExpr);
+
+		const chain = ifChains[ifExpr];
+
+		// No chain info → fall back to simple if/comment toggle
+		if (!chain) {
+			if (headNode.nodeType === Node.COMMENT_NODE) {
+				if (evaluateCondition(ifExpr, state) && ifTemplates[ifExpr]) {
+					const newEl = renderEl(ifTemplates[ifExpr]);
+					headNode.parentNode.replaceChild(newEl, headNode);
+				}
+			} else {
+				if (!evaluateCondition(ifExpr, state)) {
+					const comment = document.createComment(`x-if:${ifExpr}`);
+					headNode.parentNode.replaceChild(comment, headNode);
+				}
+			}
+			continue;
+		}
+
+		// Evaluate which chain entry wins
+		let winnerIdx = -1;
+		for (let i = 0; i < chain.length; i++) {
+			const entry = chain[i];
+			if (entry.type === 'if' || entry.type === 'else-if') {
+				if (evaluateCondition(entry.expr, state)) { winnerIdx = i; break; }
+			} else {
+				// x-else always wins if we reach it
+				winnerIdx = i; break;
+			}
+		}
+
+		// Collect current DOM slots for each chain entry, starting from headNode
+		// Slots are adjacent siblings; some may be elements (visible) or comments (hidden).
+		const slots = [headNode];
+		let cursor = headNode.nextSibling;
+		for (let i = 1; i < chain.length; i++) {
+			// Advance past text nodes (whitespace)
+			while (cursor && cursor.nodeType === Node.TEXT_NODE) cursor = cursor.nextSibling;
+			if (!cursor) break;
+
+			const entry = chain[i];
+			if (entry.type === 'else-if') {
+				// Could be a live element with x-else-if or a comment x-else-if:expr
+				const isMatch =
+					(cursor.nodeType === Node.ELEMENT_NODE && cursor.hasAttribute('x-else-if') && cursor.getAttribute('x-else-if').trim() === entry.expr) ||
+					(cursor.nodeType === Node.COMMENT_NODE && cursor.data === `x-else-if:${entry.expr}`);
+				if (isMatch) { slots.push(cursor); cursor = cursor.nextSibling; }
+				else break;
+			} else if (entry.type === 'else') {
+				const isMatch =
+					(cursor.nodeType === Node.ELEMENT_NODE && cursor.hasAttribute('x-else')) ||
+					(cursor.nodeType === Node.COMMENT_NODE && cursor.data === `x-else:${ifExpr}`);
+				if (isMatch) { slots.push(cursor); cursor = cursor.nextSibling; }
+				else break;
+			}
+		}
+
+		// Now update each slot
+		for (let i = 0; i < slots.length; i++) {
+			const slot = slots[i];
+			const entry = chain[i];
+			const shouldShow = i === winnerIdx;
+
+			if (shouldShow) {
+				// Slot should be visible
+				if (slot.nodeType === Node.COMMENT_NODE) {
+					// Replace comment with rendered element
+					const newEl = renderEl(entry.html);
+					if (newEl) slot.parentNode.replaceChild(newEl, slot);
+				}
+				// If already a live element, nothing to do
+			} else {
+				// Slot should be hidden (comment)
+				if (slot.nodeType !== Node.COMMENT_NODE) {
+					const label = entry.type === 'if'
+						? `x-if:${entry.expr}`
+						: entry.type === 'else-if'
+							? `x-else-if:${entry.expr}`
+							: `x-else:${ifExpr}`;
+					const comment = document.createComment(label);
+					slot.parentNode.replaceChild(comment, slot);
+				}
+			}
+		}
+	}
+}
+
+
+
+// MARK: Update Empty Placeholders
+// ─────────────────────────────────────────────────
+// Re-evaluates all x-empty elements in the live DOM.
+// Shows the element when its bound array is empty, hides it otherwise.
+// ─────────────────────────────────────────────────
+export function updateEmptyPlaceholders(root, state) {
+	const resolvePath = (obj, p) => p.split('.').reduce((acc, k) => acc?.[k], obj);
+	for (const el of root.querySelectorAll('[x-empty]')) {
+		const key = el.getAttribute('x-empty').trim();
+		const items = resolvePath(state, key);
+		el.style.display = (Array.isArray(items) && items.length === 0) ? '' : 'none';
+	}
+}
+
+
+
+// MARK: Update Show Bindings
+// ─────────────────────────────────────────────────
+// Re-evaluates all x-show conditions in the live DOM.
+// Toggles display:none without touching the DOM structure.
+// ─────────────────────────────────────────────────
+export function updateShowBindings(root, state) {
+	for (const el of root.querySelectorAll('[x-show]')) {
+		const expr = el.getAttribute('x-show').trim();
+		el.style.display = evaluateCondition(expr, state) ? '' : 'none';
 	}
 }
 

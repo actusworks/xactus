@@ -18,20 +18,45 @@ export default function Xactus( args ) {
 	const { el, bus, state, events, html, computed } = args;
 	let currentState = structuredClone(state);
 
+	// Auto-destroy any previous instance mounted on the same element
+	const existingRoot = el.querySelector('[data-xactus-root]');
+	if (existingRoot?._xactusDestroy) existingRoot._xactusDestroy();
+
 	// Scoped root wrapper — isolates DOM queries per instance
 	const root = document.createElement('div');
+	root.setAttribute('data-xactus-root', '');
 	el.appendChild(root);
 	const templateCache = {};
 	const ifTemplates = {};
+	const ifChains = {};
 
 
-	// Cache x-if template snippets from original HTML
+	// Cache x-if / x-else-if / x-else template snippets from original HTML
 	(function cacheIfTemplates() {
 		const tpl = document.createElement('template');
 		tpl.innerHTML = html.trim();
-		for (const el of tpl.content.querySelectorAll('[x-if]')) {
-			const expr = el.getAttribute('x-if').trim();
-			ifTemplates[expr] = el.outerHTML;
+		for (const ifEl of tpl.content.querySelectorAll('[x-if]')) {
+			const expr = ifEl.getAttribute('x-if').trim();
+			ifTemplates[expr] = ifEl.outerHTML;
+
+			// Walk siblings to collect the full chain
+			const chain = [{ type: 'if', expr, html: ifEl.outerHTML }];
+			let sib = ifEl.nextElementSibling;
+			while (sib) {
+				if (sib.hasAttribute('x-else-if')) {
+					const sibExpr = sib.getAttribute('x-else-if').trim();
+					chain.push({ type: 'else-if', expr: sibExpr, html: sib.outerHTML });
+					ifTemplates[`x-else-if:${sibExpr}`] = sib.outerHTML;
+					sib = sib.nextElementSibling;
+				} else if (sib.hasAttribute('x-else')) {
+					chain.push({ type: 'else', expr: null, html: sib.outerHTML });
+					ifTemplates[`x-else:${expr}`] = sib.outerHTML;
+					break;
+				} else {
+					break;
+				}
+			}
+			ifChains[expr] = chain;
 		}
 	})();
 
@@ -59,7 +84,7 @@ export default function Xactus( args ) {
 			return currentState;
 		},
 
-		setState(patch) {
+		patchState(patch) {
 			for (const [key, value] of Object.entries(patch)) {
 				currentState[key] = value;
 				//UT.updateDOM(key, currentState, 'text', el);
@@ -86,16 +111,15 @@ export default function Xactus( args ) {
 		},
 
 
-		// MARK: update state
+		// MARK: set state
 		// ─────────────────────────────────────────────────
-		updateState( key, value ) {
-console.log('key >>>', key)
-console.log('value >>>', value)
+		setState( key, value ) {
 			currentState[key] = value;
-console.log('currentState >>>', currentState)
 			UT.updateDOM(key, fullState(), 'text', root);
-			UT.updateConditionals(root, fullState(), ifTemplates, renderTemplate);
+			UT.updateConditionals(root, fullState(), ifTemplates, renderTemplate, ifChains);
+			UT.updateShowBindings(root, fullState());
 			UT.updateClassBindings(root, fullState());
+			UT.updateEmptyPlaceholders(root, fullState());
 		},
 
 		// MARK: update all
@@ -143,6 +167,7 @@ console.log('currentState >>>', currentState)
 				let newItem = renderTemplate( template, {row: payload, idx: newIdx}, {list: key, idx: newIdx} );
 				UT.updateDOM(key, newItem, 'add', root);
 			});
+			UT.updateEmptyPlaceholders(root, fullState());
 		},
 
 
@@ -159,7 +184,7 @@ console.log('currentState >>>', currentState)
 					UT.reindexElement(child, key, newIdx);
 				});
 			}
-			
+			UT.updateEmptyPlaceholders(root, fullState());
 		},
 
 
@@ -179,9 +204,9 @@ console.log('currentState >>>', currentState)
 	const unsubs = [];
 	if ( events && bus ) {
 		for ( const [ eventName, row ] of Object.entries( events ) ) {
-			const unsub = bus.on( eventName, ( payload ) => {
-				if ( row.updateState ) {
-					api.updateState( row.updateState, payload );
+			const handler = ( payload ) => {
+				if ( row.setState ) {
+					api.setState( row.setState, payload );
 				}
 				if ( row.updateAll ) {
 					api.updateAll( row.updateAll, payload );
@@ -200,9 +225,12 @@ console.log('currentState >>>', currentState)
 					api.RENDER(html, fullState());
 				}
 				
-    			if (args.hooks?.onUpdate) args.hooks.onUpdate(api, diff);
-			});
-        	unsubs.push(unsub);
+    			if (args.hooks?.onUpdate) args.hooks.onUpdate(api);
+			};
+			const unsub = bus.on( eventName, handler );
+			// Support buses that return an unsub function (xenonjs, nanoevents)
+			// and buses that use .off() (mitt, EventEmitter3, Node EventEmitter)
+			unsubs.push( typeof unsub === 'function' ? unsub : () => bus.off( eventName, handler ) );
 		}
 	}
 	// ────────────────────────────
@@ -212,6 +240,8 @@ console.log('currentState >>>', currentState)
 		unsubs.length = 0;
 		root.remove();
 	};
+	// Store destroy ref on the sentinel so auto-destroy can find it
+	root._xactusDestroy = () => api.destroy();
 
 
 

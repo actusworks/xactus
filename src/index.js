@@ -13,4 +13,6 @@ export {
 	setByPath,
 	parseTokens,
 	evaluateCondition,
+	updateShowBindings,
+	updateEmptyPlaceholders,
 } from './utils.js';

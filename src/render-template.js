@@ -19,8 +19,12 @@ function processNode(root, scope, path, rowContext ) {
 	// Handle conditionals first — remove hidden elements before binding
 	processConditionals(root, scope);
 
-	// Handle x-map (repeater) blocks
-	for (const mapEl of root.querySelectorAll('[x-map]')) {
+	// Handle x-map (repeater) blocks — process innermost first (depth-first)
+	const allMapEls = [...root.querySelectorAll('[x-map]')];
+	// Sort deepest nodes first so nested maps render before their parent clears innerHTML
+	allMapEls.sort((a, b) => (b.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_CONTAINS ? -1 : 1));
+
+	for (const mapEl of allMapEls) {
 		const key = mapEl.getAttribute('x-map').trim();
 		const items = resolve(scope, key);
 		mapEl.setAttribute('x-id', join(path, key));
@@ -32,11 +36,19 @@ function processNode(root, scope, path, rowContext ) {
 		items.forEach((row, idx) => {
 			const rowNode = rowTemplate.cloneNode(true);
 			const rowPath = join(join(path, key), String(idx));
-			processConditionals(rowNode, row);
-			bindAll(rowNode, { row, idx }, rowPath, true);
+			const rowScope = { row, idx };
+			// Recursively process the row node so nested x-map blocks resolve against the row scope
+			processNode(rowNode, rowScope, rowPath, { list: key, idx });
 			rowNode.setAttribute('x-id', rowPath);
 			mapEl.appendChild(rowNode);
 		});
+	}
+
+	// Handle x-empty placeholders — show when the bound array is empty
+	for (const el of root.querySelectorAll('[x-empty]')) {
+		const key = el.getAttribute('x-empty').trim();
+		const items = resolve(scope, key);
+		el.style.display = (Array.isArray(items) && items.length === 0) ? '' : 'none';
 	}
 
 	// Handle {{ }} bindings outside repeaters
@@ -63,9 +75,10 @@ function bindAll(root, scope, path, inRow, rowContext = null) {
 			}
 			else if (matches.length > 0) {
 				// Multiple bindings — wrap each in <x-o>
+				// escapeHtml prevents XSS when user data is embedded in the HTML string
 				el.innerHTML = raw.replace(/{{\s*([^}]+)\s*}}/g, (match, expr) => {
 					const { value, xid } = evaluate(expr.trim(), scope, path, inRow, rowContext);
-					return `<x-o x-id="${xid}">${value ?? ''}</x-o>`;
+					return `<x-o x-id="${xid}">${escapeHtml(value)}</x-o>`;
 				});
 			}
 		}
@@ -148,16 +161,77 @@ function evaluate(expr, scope, path, inRow, rowContext = null) {
 
 
 function processConditionals(root, scope) {
-	for (const el of [...root.querySelectorAll('[x-if]')]) {
-		const expr = el.getAttribute('x-if').trim();
-		const show = evaluateCondition(expr, scope);
+	// Process x-if chains (x-if → x-else-if* → x-else?)
+	// Collect top-level x-if elements; skip any that are already part of an else chain.
+	const processed = new Set();
 
-		if (!show) {
-			const placeholder = document.createComment(`x-if:${expr}`);
-			el.parentNode.replaceChild(placeholder, el);
+	for (const ifEl of [...root.querySelectorAll('[x-if]')]) {
+		if (processed.has(ifEl)) continue;
+
+		const expr = ifEl.getAttribute('x-if').trim();
+		let won = evaluateCondition(expr, scope);
+
+		// Build the chain: [ { el, type, expr } ]
+		const chain = [{ el: ifEl, type: 'if', expr }];
+
+		// Walk immediately following element siblings for else-if / else
+		let sibling = ifEl.nextElementSibling;
+		while (sibling) {
+			if (sibling.hasAttribute('x-else-if')) {
+				chain.push({ el: sibling, type: 'else-if', expr: sibling.getAttribute('x-else-if').trim() });
+				sibling = sibling.nextElementSibling;
+			} else if (sibling.hasAttribute('x-else')) {
+				chain.push({ el: sibling, type: 'else', expr: null });
+				break;
+			} else {
+				break;
+			}
 		}
+
+		// Decide winner and replace losers with comments
+		let winnerFound = won;
+		for (const entry of chain) {
+			processed.add(entry.el);
+
+			let show;
+			if (entry.type === 'if') {
+				show = won;
+			} else if (entry.type === 'else-if') {
+				show = !winnerFound && evaluateCondition(entry.expr, scope);
+				if (show) winnerFound = true;
+			} else {
+				// x-else
+				show = !winnerFound;
+			}
+
+			if (!show) {
+				const label = entry.type === 'if'
+					? `x-if:${entry.expr}`
+					: entry.type === 'else-if'
+						? `x-else-if:${entry.expr}`
+						: 'x-else';
+				const placeholder = document.createComment(label);
+				entry.el.parentNode.replaceChild(placeholder, entry.el);
+			}
+		}
+	}
+
+	// x-show: keep element in DOM, only toggle visibility
+	for (const el of [...root.querySelectorAll('[x-show]')]) {
+		const expr = el.getAttribute('x-show').trim();
+		const show = evaluateCondition(expr, scope);
+		el.style.display = show ? '' : 'none';
 	}
 }
 
 const resolve = (obj, path) => path.split('.').reduce((acc, k) => acc?.[k], obj);
 const join = (a, b) => (a && b ? `${a}:${b}` : a || b);
+
+function escapeHtml(str) {
+	return String(str ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}

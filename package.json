@@ -3,14 +3,19 @@
   "version": "1.0.4",
   "type": "module",
   "description": "Lightweight declarative UI component library for vanilla JavaScript. Define state and an HTML template — Xactus handles rendering, two-way binding, list management, computed properties, and surgical DOM updates. No virtual DOM, no build step required.",
-  "main": "./src/index.js",
+  "main": "./dist/xactus.iife.js",
+  "module": "./dist/xactus.esm.js",
   "exports": {
-    ".": "./src/index.js"
+    ".": {
+      "import": "./dist/xactus.esm.js",
+      "default": "./dist/xactus.iife.js"
+    }
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -41,6 +46,7 @@
     "widget"
   ],
   "files": [
+    "dist",
     "src",
     "README.md",
     "LICENSE"
