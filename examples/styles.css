@@ -414,18 +414,21 @@ nav a:hover {
 	background: var(--n-700);
 	color: darkorange;
 }
+.code-handler:hover {
+	background: var(--n-600);
+}
 .code-handler {
 	display: flex;
 	justify-content: center;
 	position: absolute;
 	left: -55px;
 	bottom: 35px;
-	height: calc(100% - 35px);
+	height: calc(50% - 35px);
 	color: white;
 	background: var(--primary);
-	background: var(--n-300);
+	background: var(--n-500);
 	color: darkorange;
-	color: var(--n-500);
+	color: var(--n-200);
 	padding: 10px 15px;
 	cursor: pointer;
 	font-weight: 800;

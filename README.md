@@ -15,6 +15,7 @@ No build step required. No virtual DOM. No framework lock-in.
 
 ## Table of Contents
 
+- [Live Examples](#live-examples)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Template Syntax](#template-syntax)
@@ -32,7 +33,6 @@ No build step required. No virtual DOM. No framework lock-in.
 - [Lifecycle Hooks](#lifecycle-hooks)
 - [API Reference](#api-reference)
 - [Full Example](#full-example)
-- [Live Examples](#live-examples)
 
 ---
 
