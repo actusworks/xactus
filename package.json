@@ -1,8 +1,12 @@
 {
   "name": "xactus",
   "version": "1.0.2",
+  "type": "module",
   "description": "Lightweight declarative UI component library for vanilla JavaScript. Define state and an HTML template — Xactus handles rendering, two-way binding, list management, computed properties, and surgical DOM updates. No virtual DOM, no build step required.",
-  "main": "src/index.js",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
